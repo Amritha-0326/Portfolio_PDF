@@ -11,6 +11,8 @@ from reportlab.platypus import (
     Table,
     TableStyle
 )
+from reportlab.platypus import Flowable
+from reportlab.pdfbase.pdfmetrics import stringWidth
 from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
@@ -265,6 +267,73 @@ body = ParagraphStyle(
     leading=16,
     alignment=1
 )
+# ---------CLASSES---------
+
+PAGE_WIDTH, _ = A4
+
+
+class CertificateCards(Flowable):
+    def __init__(self, certificates, width=100, box_height=60, spacing=15, left_padding=12):
+
+        super().__init__()
+        self.certificates = certificates
+        self.width = width
+        self.box_height = box_height
+        self.spacing = spacing
+        self.left_padding = left_padding
+        self.height = len(certificates) * (box_height + spacing)
+
+    def draw(self):
+        c = self.canv
+        y_start = 0
+        x_start = ((PAGE_WIDTH - self.width) / 2) - 52  # center horizontally
+        c.saveState()
+        for cert in self.certificates:
+            if len(cert) == 4:
+                title_text, subtitle_text, color_hex, url = cert
+            else:
+                title_text, subtitle_text, color_hex = cert
+                url = None
+
+            bg_color = HexColor(color_hex)
+
+            # Draw rounded rectangle (centered)
+            c.setFillColor(bg_color)
+            c.roundRect(x_start, y_start, self.width,
+                        self.box_height, radius=8, fill=1, stroke=0)
+
+            # Draw title and subtitle
+            c.setFillColor(HexColor("#FFFFFF"))
+            text_x = x_start + self.left_padding
+            text_y = y_start + self.box_height - 18
+
+            c.setFont("Jost-Bold", 12)
+            c.drawString(text_x, text_y - 5, title_text)
+
+            c.setFont("Jost", 10)
+            c.drawString(text_x, text_y - 23, subtitle_text)
+
+            # Draw "View Certificate" link
+            if url:
+                link_text = "View Certificate"
+                link_x = text_x
+                link_y = text_y - 32
+                c.setFillColor(HexColor("#FFFFFF"))
+                c.setFont("Jost-Bold", 9)
+                c.drawString(link_x, link_y - 14, link_text)
+
+                link_width = c.stringWidth(link_text, "Jost-Bold", 9)
+                c.linkURL(url,
+                          rect=(link_x, link_y - 14, link_x +
+                                link_width, link_y + 10),
+                          relative=1,
+                          thickness=0,
+                          color=None)
+
+            # Move y_start for next card
+            y_start += self.box_height + self.spacing
+        c.restoreState()
+
 
 # ---------- OVERVIEW ----------
 story.append(Spacer(1, 185))
@@ -278,68 +347,37 @@ story.append(
     )
 )
 
-# ---------- SKILLS ----------
-
-story.append(Spacer(1, 70))
-
-
-# ---------- CERTIFICATES (AUTO FLOW, MULTI-PAGE SAFE) ----------
-
-# ---------- COLORS ----------
-CARD_BG = HexColor("#F7F6F4")  # light grey card background
-PRIMARY = HexColor("#4C5C68")  # text color
-
-# ---------- STYLES ----------
-
-body = ParagraphStyle(
-    "Body",
-    fontName="Jost",
-    fontSize=11,
-    textColor=PRIMARY,
-    leading=16
-)
+story.append(Spacer(1, 80))
 
 # ---------- CERTIFICATES DATA ----------
 certificates = [
-    ("Foundations of UX Design", "Google Career Certificate · 2023"),
-    ("UX Design Process", "Google Career Certificate · 2023"),
-    ("UX Research & Early Testing", "Google Career Certificate · 2023"),
-    ("Unit Testing in React.js", "Coursera · 2023"),
-    ("React Basics", "Meta · In Progress"),
+    ("UX Research & Early Testing", "Google Career Certificate · 2025",
+     "#4c5c68", "https://coursera.org/verify/NM7EE4NTFUQG"),
+    ("UX Design Process", "Google Career Certificate · 2023", "#b87b5a",
+     "https://coursera.org/verify/HVDVFMEQLPZK"),
+    ("Foundations of UX Design", "Google Career Certificate · 2021",
+     "#8b9a7a", "https://coursera.org/verify/8G87LVSUC5CC")
+]
+certificates1 = [
+    ("React Basics", "Meta · In Progress", "#8b9a7a"),
+    ("Unit Testing in React.js", "Coursera · 2025", "#cbbfb0",
+     "https://coursera.org/share/489f522143b954e11686213c8728e81f")
 ]
 
-# ---------- CREATE CARD ROWS ----------
-cert_rows = []
-for title_text, subtitle_text in certificates:
-    cert_paragraph = Paragraph(
-        f"<b>{title_text}</b><br/>{subtitle_text}", body)
-    cert_rows.append([cert_paragraph])
+story.append(Paragraph(
+    "Certificates & Achievements",
+    ParagraphStyle(
+        "Section", fontName="Jost-Bold", fontSize=15, textColor=HexColor("#4C5C68"),
+        spaceBefore=20, spaceAfter=12, alignment=1
+    )
+))
 
-# ---------- TABLE ----------
-cert_table = Table(
-    cert_rows,
-    colWidths=[440],  # adjust width as needed
-    hAlign="CENTRE"
-)
-
-# ---------- TABLE STYLE ----------
-cert_table.setStyle(
-    TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), CARD_BG),
-        ("BOX", (0, 0), (-1, -1), 0, CARD_BG),  # optional border
-        ("INNERGRID", (0, 0), (-1, -1), 0, CARD_BG),
-        ("PADDING", (0, 0), (-1, -1), 14),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 20),
-    ])
-)
-
-# ---------- ADD TO STORY ----------
-story.append(Paragraph("Certificates & Achievements", ParagraphStyle(
-    "Section", fontName="Jost-Bold", fontSize=15, textColor=PRIMARY, spaceBefore=20, spaceAfter=12, alignment=1
-)))
-story.append(cert_table)
-story.append(Spacer(1, 10))
-
+story.append(CertificateCards(
+    certificates, width=200, box_height=80, spacing=15))
+story.append(Spacer(0, 10))
+story.append(CertificateCards(
+    certificates1, width=200, box_height=80, spacing=15))
+story.append(Spacer(0, 10))
 
 # ---------- PROJECTS ----------
 story.append(Paragraph("Fun Projects & Learning", section))
