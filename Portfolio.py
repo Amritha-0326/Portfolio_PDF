@@ -86,10 +86,6 @@ def draw_header(canvas, doc):
     canvas.drawString(text_x, text_y, "Contact Me")
 
 
-def draw_empty(canvas, doc):
-    pass
-
-
 def draw_round_image(canvas, image_path, x, y, size, border_width=4):
     canvas.saveState()
 
@@ -127,6 +123,7 @@ def draw_round_image(canvas, image_path, x, y, size, border_width=4):
 
 def draw_banner(canvas, doc):
     width, height = A4
+    doc.bottomMargin = 280
 
     # Green header background (taller)
     canvas.setFillColor(SOFT_GREEN)
@@ -153,12 +150,60 @@ def draw_banner(canvas, doc):
         height - 155,
         "UX Designer solving complex problems with simple interactions"
     )
+    doc.bottomMargin = 280
+
+
+def draw_skill_boxes(canvas, skills, x_start, y_start, box_height=30, padding=12, spacing=10, max_width=440):
+    canvas.saveState()
+    canvas.setFont("Jost-Bold", 11)
+    canvas.setFillColor(PRIMARY)
+
+    x = x_start
+    y = y_start
+
+    for skill in skills:
+        # calculate width based on text
+        text_width = canvas.stringWidth(skill, "Jost-Bold", 11)
+        box_width = text_width + 2 * padding
+
+        # wrap to next line if exceeds max_width
+        if x + box_width > x_start + max_width:
+            x = x_start
+            y -= box_height + spacing
+
+        # draw rounded rectangle
+        canvas.setFillColor(ACCENT)
+        canvas.roundRect(x, y - box_height, box_width,
+                         box_height, radius=6, fill=1, stroke=0)
+
+        # draw text centered
+        canvas.setFillColor(PRIMARY)
+        canvas.drawCentredString(x + box_width/2, y - box_height/2 - 4, skill)
+
+        # move x for next box
+        x += box_width + spacing
+
+    canvas.restoreState()
 
 
 def draw_first_page(canvas, doc):
-    """Combine header and banner on first page."""
-    draw_header(canvas, doc)
+    # draw_header(canvas, doc)
     draw_banner(canvas, doc)
+
+    skills = ["Research", "UI Design", "Prototyping",
+              "User Testing", "Prototyping Tools"]
+
+    # Draw skills below the banner (adjust y_start as needed)
+    draw_skill_boxes(
+        canvas,
+        skills,
+        x_start=80,
+        y_start=450,  # distance from bottom of page
+        box_height=30,
+        padding=10,
+        spacing=12,
+        max_width=460
+    )
 
 
 # ---------- STYLES ----------
@@ -211,7 +256,8 @@ section = ParagraphStyle(
     fontSize=15,
     textColor=PRIMARY,
     spaceBefore=20,
-    spaceAfter=12
+    spaceAfter=12,
+    alignment=1
 )
 
 body = ParagraphStyle(
@@ -219,10 +265,12 @@ body = ParagraphStyle(
     fontName="Jost",
     fontSize=11,
     textColor=PRIMARY,
-    leading=16
+    leading=16,
+    alignment=1
 )
 
 # ---------- OVERVIEW ----------
+
 story.append(Paragraph("Professional Overview", section))
 story.append(
     Paragraph(
@@ -235,51 +283,7 @@ story.append(
 
 # ---------- SKILLS ----------
 
-# Colors
-ACCENT = HexColor("#B6A58D")
-PRIMARY = HexColor("#4C5C68")
-
-# Paragraph style for skills
-skill_style = ParagraphStyle(
-    "Skill",
-    fontName="Jost-Bold",
-    fontSize=11,
-    textColor=PRIMARY,
-    alignment=1,  # center horizontally
-)
-
-# Skills list
-skills = ["Research", "UI Design", "Prototyping",
-          "User Testing", "Prototyping Tools"]
-
-# Convert skills into a table row (each skill is a cell)
-skill_cells = [Paragraph(skill, skill_style) for skill in skills]
-
-# Create Table (1 row, multiple columns)
-skills_table = Table([skill_cells], colWidths=100,
-                     hAlign="CENTER")  # adjust colWidths
-
-# Style Table: background, padding, rounded edges
-skills_table.setStyle(
-    TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), ACCENT),
-        ("TEXTCOLOR", (0, 0), (-1, -1), PRIMARY),
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 12),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 12),
-        ("TOPPADDING", (0, 0), (-1, -1), 8),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
-        ("ROUNDEDCORNERS", (0, 0), (-1, -1), 8),
-    ])
-)
-
-# Add to story
-story.append(Paragraph("Core Skills", ParagraphStyle(
-    "Section", fontName="Jost-Bold", fontSize=15, textColor=PRIMARY, spaceBefore=20, spaceAfter=12
-)))
-story.append(skills_table)
-story.append(Spacer(1, 20))
+story.append(Spacer(1, 70))
 
 
 # ---------- CERTIFICATES (AUTO FLOW, MULTI-PAGE SAFE) ----------
@@ -318,7 +322,7 @@ for title_text, subtitle_text in certificates:
 cert_table = Table(
     cert_rows,
     colWidths=[440],  # adjust width as needed
-    hAlign="LEFT"
+    hAlign="CENTRE"
 )
 
 # ---------- TABLE STYLE ----------
@@ -334,17 +338,17 @@ cert_table.setStyle(
 
 # ---------- ADD TO STORY ----------
 story.append(Paragraph("Certificates & Achievements", ParagraphStyle(
-    "Section", fontName="Jost-Bold", fontSize=15, textColor=PRIMARY, spaceBefore=20, spaceAfter=12
+    "Section", fontName="Jost-Bold", fontSize=15, textColor=PRIMARY, spaceBefore=20, spaceAfter=12, alignment=1
 )))
 story.append(cert_table)
-story.append(Spacer(1, 20))
+story.append(Spacer(10, 200))
 
 
 # ---------- PROJECTS ----------
 story.append(Paragraph("Fun Projects & Learning", section))
 
-project1 = Image(os.path.join(IMG_DIR, "project1.jpg"), width=200, height=120)
-project2 = Image(os.path.join(IMG_DIR, "project2.jpg"), width=200, height=120)
+project1 = Image(os.path.join(IMG_DIR, "project1.jpg"), width=200, height=250)
+project2 = Image(os.path.join(IMG_DIR, "project2.jpg"), width=200, height=250)
 
 projects_table = Table(
     [
