@@ -41,7 +41,7 @@ doc = SimpleDocTemplate(
     pagesize=A4,
     rightMargin=50,
     leftMargin=50,
-    topMargin=280,
+    # topMargin=280,
     bottomMargin=50
 )
 
@@ -123,8 +123,6 @@ def draw_round_image(canvas, image_path, x, y, size, border_width=4):
 
 def draw_banner(canvas, doc):
     width, height = A4
-    doc.bottomMargin = 280
-
     # Green header background (taller)
     canvas.setFillColor(SOFT_GREEN)
     canvas.rect(0, height - 260, width, 260, fill=1, stroke=0)
@@ -150,7 +148,6 @@ def draw_banner(canvas, doc):
         height - 155,
         "UX Designer solving complex problems with simple interactions"
     )
-    doc.bottomMargin = 280
 
 
 def draw_skill_boxes(canvas, skills, x_start, y_start, box_height=30, padding=12, spacing=10, max_width=440):
@@ -270,7 +267,7 @@ body = ParagraphStyle(
 )
 
 # ---------- OVERVIEW ----------
-
+story.append(Spacer(1, 185))
 story.append(Paragraph("Professional Overview", section))
 story.append(
     Paragraph(
@@ -341,7 +338,7 @@ story.append(Paragraph("Certificates & Achievements", ParagraphStyle(
     "Section", fontName="Jost-Bold", fontSize=15, textColor=PRIMARY, spaceBefore=20, spaceAfter=12, alignment=1
 )))
 story.append(cert_table)
-story.append(Spacer(10, 200))
+story.append(Spacer(1, 10))
 
 
 # ---------- PROJECTS ----------
