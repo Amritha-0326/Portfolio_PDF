@@ -6,10 +6,7 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.platypus import (
     SimpleDocTemplate,
     Paragraph,
-    Spacer,
-    Image,
-    Table,
-    TableStyle
+    Spacer
 )
 from reportlab.platypus import Flowable
 from reportlab.pdfbase.pdfmetrics import stringWidth
@@ -17,6 +14,7 @@ from reportlab.platypus import BaseDocTemplate, PageTemplate, Frame
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import PageBreak
 
 # ---------- PATHS ----------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -271,7 +269,7 @@ body = ParagraphStyle(
 )
 # ---------CLASSES---------
 
-PAGE_WIDTH, _ = A4
+PAGE_WIDTH, PAGE_HEIGHT = A4
 
 
 class CertificateCards(Flowable):
@@ -568,6 +566,149 @@ class TwoColumnGrid(Flowable):
             item.drawAt(x, y, c)
 
 
+class LetsConnectCard(Flowable):
+    def __init__(
+        self,
+        email="amrithapanil0326@gmail.com",
+        location="Germany",
+        links=None,
+        card_width=380,
+        card_height=220,
+    ):
+        super().__init__()
+
+        self.email = email
+        self.location = location
+        self.card_width = card_width
+        self.card_height = card_height
+
+        self.links = links or [
+            ("LinkedIn", "https://www.linkedin.com/in/amritha-p-8anil89700/"),
+            ("Behance", "https://www.behance.net/amrithaanil"),
+            ("GitHub", "https://github.com/Amritha-0326"),
+        ]
+
+        # This Flowable only occupies vertical space equal to its content
+        self.width = A4[0]
+        self.height = card_height + 160
+
+    def wrap(self, availWidth, availHeight):
+        return availWidth, self.height
+
+    def _draw_social_boxes(self, c, center_x, y):
+        c.saveState()
+
+        c.setFont("Jost-Bold", 11)
+        c.setFillColor(PRIMARY)
+
+        padding_x = 14
+        box_height = 34
+        spacing = 55
+
+        # Calculate total width first (to center group)
+        box_data = []
+        total_width = 0
+
+        for label, url in self.links:
+            text_width = c.stringWidth(label, "Jost-Bold", 11)
+            box_width = text_width + padding_x * 2
+            box_data.append((label, url, box_width))
+            total_width += box_width
+
+        total_width += spacing * (len(box_data) - 1)
+
+        # Starting x so entire group is centered
+        x = (center_x - total_width / 2)
+
+        for label, url, box_width in box_data:
+            # Draw rounded rectangle
+            c.setFillColor(HexColor("#abc686"))
+            c.roundRect(
+                x,
+                (y - box_height) + 10,
+                box_width,
+                box_height,
+                radius=8,
+                fill=1,
+                stroke=0
+            )
+
+            # Draw label
+            c.setFillColor(WHITE)
+            text_y = y - box_height / 2 - 4
+            c.drawCentredString(x + box_width / 2, text_y + 10, label)
+
+            # Clickable area
+            c.linkURL(
+                url,
+                (
+                    x,
+                    y - box_height,
+                    x + box_width,
+                    y,
+                ),
+                relative=1
+            )
+
+            x += box_width + spacing
+
+        c.restoreState()
+
+    def draw(self):
+        c = self.canv
+        width, _ = A4
+
+        # ---------- Centering ----------
+        center_x = (width / 2) - 60
+        y_base = self.height - 40
+
+        # ---------- Title ----------
+        c.setFont("Jost-Bold", 26)
+        c.setFillColor(PRIMARY)
+        c.drawCentredString(center_x, y_base, "Let’s Connect")
+
+        # ---------- Card ----------
+        card_x = center_x - self.card_width / 2
+        card_y = y_base - self.card_height - 30
+
+        c.setFillColor(PRIMARY)
+        c.roundRect(
+            card_x,
+            card_y,
+            self.card_width,
+            self.card_height,
+            18,
+            fill=1,
+            stroke=0
+        )
+
+        # ---------- Card Content ----------
+        text_x = card_x + 40
+        text_y = card_y + self.card_height - 55
+
+        c.setFillColor(WHITE)
+        c.setFont("Jost-Bold", 16)
+        c.drawString(text_x, text_y, "Contact Info")
+
+        c.setFont("Jost", 12)
+        c.drawString(text_x, text_y - 40, "Email")
+        c.setFont("Jost-Bold", 12)
+        c.drawString(text_x, text_y - 60, self.email)
+
+        c.setFont("Jost", 12)
+        c.drawString(text_x, text_y - 95, "Based in")
+        c.setFont("Jost-Bold", 12)
+        c.drawString(text_x, text_y - 115, self.location)
+
+        # ---------- Social Links Container ----------
+        container_width = 420
+        container_height = 46
+        container_x = center_x - container_width / 2
+        container_y = card_y - 60
+
+        self._draw_social_boxes(c, center_x, container_y)
+
+
 # ---------- OVERVIEW ----------
 story.append(Spacer(1, 185))
 story.append(Paragraph("Professional Overview", section))
@@ -653,7 +794,8 @@ image_cards = [
 
 story.append(TwoColumnGrid(image_cards))
 story.append(Spacer(1, 20))
-
+story.append(PageBreak())
+story.append(LetsConnectCard())
 
 # ---------- BUILD ----------
 doc.build(
@@ -661,6 +803,5 @@ doc.build(
     onFirstPage=draw_first_page,  # header + banner
     onLaterPages=draw_header       # only compact header
 )
-
 
 print("Multi-page portfolio PDF created successfully.")
