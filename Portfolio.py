@@ -36,6 +36,9 @@ CTA = HexColor("#C37052")
 SOFT_GREEN = HexColor("#B8CA93")
 CARD_BG = HexColor("#F7F6F4")
 WHITE = HexColor("#FFFFFF")
+BLACK = HexColor("#000000")
+TAG_BG = HexColor("#DDDDDD")
+WHITE_BG = HexColor("#F3F2ED")
 
 # ---------- DOCUMENT ----------
 doc = SimpleDocTemplate(
@@ -335,6 +338,242 @@ class CertificateCards(Flowable):
         c.restoreState()
 
 
+class ProjectCard(Flowable):
+    def __init__(
+        self,
+        title,
+        subtitle,
+        description,
+        tags,
+        learned,
+        icon="",
+        width=260,
+        height=175,
+        padding=14,
+    ):
+        super().__init__()
+        self.title = title
+        self.subtitle = subtitle
+        self.description = description
+        self.tags = tags
+        self.learned = learned
+        self.icon = icon
+        self.width = width
+        self.height = height
+        self.padding = padding
+
+    def drawAt(self, x, y, canvas):
+        self.canv = canvas
+        self._x = x - 55
+        self._y = y
+        self.draw()
+
+    def draw(self):
+        c = self.canv
+        x = self._x
+        y = self._y
+
+        c.saveState()
+
+        # Card background
+        c.setFillColor(WHITE_BG)
+        c.roundRect(x, y, self.width, self.height, 10, fill=1, stroke=0)
+
+        cursor_y = y + self.height - self.padding - 5
+        text_x = x + self.padding
+
+        # Icon + title
+        c.setFont("Jost-Bold", 13)
+        c.setFillColor(PRIMARY)
+        c.drawString(text_x, cursor_y, f"{self.icon}  {self.title}")
+        cursor_y -= 18
+
+        # Subtitle
+        c.setFont("Jost", 10)
+        c.drawString(text_x, cursor_y, self.subtitle)
+        cursor_y -= 16
+
+        # Description
+        c.setFont("Jost", 9.5)
+        text = c.beginText(text_x, cursor_y)
+        text.setLeading(13)
+        for line in self._wrap(self.description, c, 9.5):
+            text.textLine(line)
+        c.drawText(text)
+        cursor_y = text.getY() - 10
+
+        # Tags
+        tag_x = text_x
+        c.setFont("Jost", 8.5)
+        for tag in self.tags:
+            w = c.stringWidth(tag, "Jost", 8.5) + 10
+            c.setFillColor(TAG_BG)
+            c.roundRect(tag_x, cursor_y - 12, w, 14, 6, fill=1, stroke=0)
+            c.setFillColor(BLACK)
+            c.drawCentredString(tag_x + w / 2, cursor_y - 7, tag)
+            tag_x += w + 5
+
+        cursor_y -= 22
+
+        # Learned
+        c.setFont("Jost-Bold", 9.5)
+        c.setFillColor(PRIMARY)
+        c.drawString(text_x, cursor_y - 5, "What I learned")
+        cursor_y -= 12
+
+        c.setFont("Jost", 9.5)
+        text = c.beginText(text_x, cursor_y - 5)
+        text.setLeading(13)
+        for line in self._wrap(self.learned, c, 9.5):
+            text.textLine(line)
+        c.drawText(text)
+
+        c.restoreState()
+
+    def _wrap(self, text, canvas, size):
+        max_width = self.width - 2 * self.padding
+        words, line, lines = text.split(), "", []
+        for w in words:
+            test = line + w + " "
+            if canvas.stringWidth(test, "Jost", size) <= max_width:
+                line = test
+            else:
+                lines.append(line)
+                line = w + " "
+        if line:
+            lines.append(line)
+        return lines
+
+
+class ProjectGrid(Flowable):
+    def __init__(self, cards, spacing=20):
+        super().__init__()
+        self.cards = cards
+        self.spacing = spacing
+        self.cols = 2
+
+        self.card_width = cards[0].width
+        self.card_height = cards[0].height
+
+        rows = (len(cards) + 1) // 2
+        self.width = PAGE_WIDTH
+        self.height = rows * (self.card_height + spacing)
+
+    def draw(self):
+        c = self.canv
+        x_start = (PAGE_WIDTH - (2 * self.card_width + self.spacing)) / 2
+        y = self.height - self.card_height
+
+        for i, card in enumerate(self.cards):
+            col = i % 2
+            if col == 0 and i != 0:
+                y -= self.card_height + self.spacing
+
+            x = x_start + col * (self.card_width + self.spacing)
+            card.drawAt(x, y, c)
+
+
+class ImageCard(Flowable):
+    def __init__(self, image_path, width=200, height=240, radius=12, border=4):
+        super().__init__()
+        self.image_path = image_path
+        self.width = width
+        self.height = height
+        self.radius = radius
+        self.border = border
+
+    def drawAt(self, x, y, canvas):
+        self.canv = canvas
+        self._x = x
+        self._y = y
+        self.draw()
+
+    def draw(self):
+        c = self.canv
+        x = self._x
+        y = self._y
+
+        c.saveState()
+
+        # White rounded border
+        c.setFillColor(WHITE_BG)
+        c.roundRect(
+            x - self.border,
+            y - self.border,
+            self.width + self.border * 2,
+            self.height + self.border * 2,
+            self.radius + self.border,
+            fill=1,
+            stroke=0
+        )
+
+        # Clip rounded image
+        path = c.beginPath()
+        path.roundRect(x, y, self.width, self.height, self.radius)
+        c.clipPath(path, stroke=0, fill=0)
+
+        c.drawImage(
+            ImageReader(self.image_path),
+            x,
+            y,
+            width=self.width,
+            height=self.height,
+            mask="auto"
+        )
+
+        c.restoreState()
+
+
+class ProjectImageGrid(Flowable):
+    def __init__(self, images, spacing=30):
+        super().__init__()
+        self.images = images
+        self.spacing = spacing
+        self.cols = 2
+
+        self.card_width = images[0].width
+        self.card_height = images[0].height
+
+    def wrap(self, availWidth, availHeight):
+        rows = (len(self.images) + 1) // 2
+        self.width = availWidth
+        self.height = rows * (self.card_height + self.spacing)
+        return self.width, self.height
+
+    def split(self, availWidth, availHeight):
+        rows_that_fit = int(
+            availHeight // (self.card_height + self.spacing)
+        )
+
+        if rows_that_fit <= 0:
+            return []
+
+        max_images = rows_that_fit * 2
+        first = self.images[:max_images]
+        rest = self.images[max_images:]
+
+        flowables = [ProjectImageGrid(first, self.spacing)]
+        if rest:
+            flowables.append(ProjectImageGrid(rest, self.spacing))
+
+        return flowables
+
+    def draw(self):
+        c = self.canv
+
+        total_row_width = self.card_width * 2 + self.spacing
+        x_start = (self.width - total_row_width) / 2
+        y = self.height - self.card_height
+
+        for i, card in enumerate(self.images):
+            col = i % 2
+            if col == 0 and i != 0:
+                y -= self.card_height + self.spacing
+
+            x = x_start + col * (self.card_width + self.spacing)
+            card.drawAt(x, y, c)
+
+
 # ---------- OVERVIEW ----------
 story.append(Spacer(1, 185))
 story.append(Paragraph("Professional Overview", section))
@@ -346,7 +585,6 @@ story.append(
         body
     )
 )
-
 story.append(Spacer(1, 80))
 
 # ---------- CERTIFICATES DATA ----------
@@ -381,30 +619,49 @@ story.append(Spacer(0, 10))
 
 # ---------- PROJECTS ----------
 story.append(Paragraph("Fun Projects & Learning", section))
+story.append(Spacer(1, 10))
 
-project1 = Image(os.path.join(IMG_DIR, "project1.jpg"), width=200, height=250)
-project2 = Image(os.path.join(IMG_DIR, "project2.jpg"), width=200, height=250)
+projects = [
+    ProjectCard(
+        title="Aesthetic Egg Timer",
+        subtitle="Desktop UI Experiment · React + Electron",
+        description=(
+            "A retro pixel-art style egg timer with three preset options. "
+            "Built using React and packaged with Electron."
+        ),
+        tags=["React", "Electron", "UI Design", "Pixel Art"],
+        learned=(
+            "Learned how to combine React logic with Electron and design "
+            "simple but delightful timer-based interactions."
+        ),
+        icon="🥚"
+    ),
+    ProjectCard(
+        title="Aesthetic Weather App",
+        subtitle="API-Based Frontend Project",
+        description=(
+            "An aesthetic weather app inspired by the Egg Timer visual style. "
+            "Uses OpenWeatherMap API with city search and error handling."
+        ),
+        tags=["API Integration", "Frontend", "UI Design", "Async States"],
+        learned=(
+            "Working with real-time data requires careful handling of loading "
+            "and error states while maintaining visual consistency."
+        ),
+        icon="☁️"
+    )
+]
 
-projects_table = Table(
-    [
-        [project1, project2],
-        [
-            Paragraph("<b>Aesthetic Egg Timer</b><br/>React + Electron", body),
-            Paragraph("<b>Aesthetic Weather App</b><br/>API-based Frontend", body)
-        ]
-    ],
-    colWidths=[220, 220]
-)
+story.append(ProjectGrid(projects))
 
-projects_table.setStyle(
-    TableStyle([
-        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-        ("TOPPADDING", (0, 0), (-1, -1), 15),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 15),
-    ])
-)
+image_cards = [
+    ImageCard(os.path.join(IMG_DIR, "project1.jpg")),
+    ImageCard(os.path.join(IMG_DIR, "project2.jpg")),
+]
 
-story.append(projects_table)
+story.append(ProjectImageGrid(image_cards))
+story.append(Spacer(1, 30))
+
 
 # ---------- BUILD ----------
 doc.build(
