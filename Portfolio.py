@@ -57,7 +57,7 @@ def draw_header(canvas, doc):
     header_height = 50
 
     # White background box
-    canvas.setFillColor(WHITE)
+    canvas.setFillColor(WHITE_BG)
     canvas.rect(0, height - header_height, width,
                 header_height, fill=1, stroke=0)
 
@@ -68,24 +68,25 @@ def draw_header(canvas, doc):
     canvas.drawString(50, height - 36, "Amritha P Anil")
 
     # Right button: Contact Me
-    btn_width = 100
-    btn_height = 30
+    btn_width = 200
+    btn_height = 20
     btn_x = width - 50 - btn_width
     btn_y = height - 40  # small padding from top
 
     # Draw rounded rectangle
-    radius = 5
-    canvas.setFillColor(CTA)
-    canvas.roundRect(btn_x, btn_y, btn_width, btn_height,
-                     radius, fill=1, stroke=0)
+    # radius = 5
+    # canvas.setFillColor(CTA)
+    # canvas.roundRect(btn_x, btn_y, btn_width, btn_height,
+    #                  radius, fill=1, stroke=0)
 
     # Button text
-    canvas.setFont("Jost-Bold", 12)
-    canvas.setFillColor(WHITE)
-    text_width = canvas.stringWidth("Contact Me", "Jost-Bold", 12)
+    canvas.setFont("Jost-Bold", 16)
+    canvas.setFillColor(CTA)
+    text_width = canvas.stringWidth(
+        "“Design. Iterate. Repeat.”", "Jost-Bold", 12)
     text_x = btn_x + (btn_width - text_width) / 2
     text_y = btn_y + (btn_height - 12) / 2 + 3  # approx vertical centering
-    canvas.drawString(text_x, text_y, "Contact Me")
+    canvas.drawString(text_x, text_y, "“Design. Iterate. Repeat.”")
 
 
 def draw_round_image(canvas, image_path, x, y, size, border_width=4):
@@ -196,7 +197,7 @@ def draw_first_page(canvas, doc):
     draw_skill_boxes(
         canvas,
         skills,
-        x_start=80,
+        x_start=70,
         y_start=450,  # distance from bottom of page
         box_height=30,
         padding=10,
@@ -709,6 +710,211 @@ class LetsConnectCard(Flowable):
         self._draw_social_boxes(c, center_x, container_y)
 
 
+class PersonalPassion(Flowable):
+    def __init__(
+        self,
+        width=A4[0] - 100,
+        card_width=160,
+        card_height=260,
+        spacing=30,
+    ):
+        super().__init__()
+        self.width = width
+        self.card_width = card_width
+        self.card_height = card_height + 50
+        self.spacing = spacing
+
+        self.height = card_height + 160  # total vertical space
+
+        self.cards = [
+            {
+                "title": "Weekend Sketches",
+                "text": (
+                    "Sketching helps me see. It sharpens my eye for detail and keeps "
+                    "my creative instincts grounded, just like good design should."
+                ),
+                "image": os.path.join(IMG_DIR, "passion-image.jpg"),
+            },
+            {
+                "title": "Scent & Sensibility",
+                "text": (
+                    "I’m drawn to the layers, balance, and emotion behind a well-crafted "
+                    "fragrance. It is storytelling through subtle detail."
+                ),
+                "image": os.path.join(IMG_DIR, "scent.png"),
+            },
+            {
+                "title": "Matcha Rituals",
+                "text": (
+                    "The quiet ritual of making matcha reminds me to slow down, "
+                    "stay present, and design with intention."
+                ),
+                "image": os.path.join(IMG_DIR, "matcha.png"),
+            },
+        ]
+
+    def wrap(self, availWidth, availHeight):
+        return availWidth, self.height
+
+    def _draw_cover_image(self, c, image_path, x, y, box_w, box_h):
+        img = ImageReader(image_path)
+        img_w, img_h = img.getSize()
+
+        img_ratio = img_w / img_h
+        box_ratio = box_w / box_h
+
+        if img_ratio > box_ratio:
+            # image is wider → crop sides
+            draw_h = box_h
+            draw_w = box_h * img_ratio
+        else:
+            # image is taller → crop top/bottom
+            draw_w = box_w
+            draw_h = box_w / img_ratio
+
+        draw_x = x - (draw_w - box_w) / 2
+        draw_y = y - (draw_h - box_h) / 2
+
+        c.drawImage(
+            img,
+            draw_x,
+            draw_y,
+            width=draw_w,
+            height=draw_h,
+            mask="auto"
+        )
+
+    def draw(self):
+        c = self.canv
+        page_width, _ = A4
+
+        center_x = (page_width / 2) - 75
+        start_y = self.height - 40
+
+        # ---------- Section Title ----------
+        c.setFont("Jost-Bold", 18)
+        c.setFillColor(PRIMARY)
+        c.drawCentredString(center_x + 15, start_y, "Personal Passion")
+
+        # ---------- Cards Layout ----------
+        total_width = (self.card_width * 3) + (self.spacing * 2)
+        x_start = center_x - (total_width / 2)
+        y_card = start_y - self.card_height - 40
+
+        for i, card in enumerate(self.cards):
+            x = (x_start + i * (self.card_width + self.spacing)) + 20
+
+            self._draw_card(
+                c,
+                x,
+                y_card,
+                card["image"],
+                card["title"],
+                card["text"],
+            )
+
+        # ---------- Footer Text ----------
+        footer_text = (
+            "My work is shaped by more than just tools and techniques – it’s shaped by "
+            "the things I care about. Whether it’s sketching on the weekends or getting "
+            "lost in the quiet details of everyday life, the more grounded I am outside "
+            "the screen, the more empathy and clarity I bring into my designs."
+        )
+        x_gap = 10
+        text = c.beginText(x_gap, y_card - 60)
+        text.setFont("Jost", 11)
+        text.setFillColor(PRIMARY)
+        text.setLeading(16)
+
+        max_width = page_width - 120
+        words, line = footer_text.split(), ""
+
+        for word in words:
+            test = line + word + " "
+            if c.stringWidth(test, "Jost", 11) <= max_width:
+                line = test
+            else:
+                text.textLine(line)
+                line = word + " "
+        if line:
+            text.textLine(line)
+
+        c.drawText(text)
+
+    def _draw_card(self, c, x, y, image_path, title, text):
+        c.saveState()
+
+        # ---------- Card Background ----------
+        c.setFillColor(CARD_BG)
+        c.roundRect(
+            x,
+            y,
+            self.card_width,
+            self.card_height,
+            14,
+            fill=1,
+            stroke=0
+        )
+
+        # ---------- Image (CLIPPED) ----------
+        img_height = 170
+        c.saveState()  # 🔑 isolate clipping
+
+        path = c.beginPath()
+        path.roundRect(
+            x,
+            y + self.card_height - img_height,
+            self.card_width,
+            img_height,
+            14
+        )
+        c.clipPath(path, stroke=0, fill=0)
+
+        self._draw_cover_image(
+            c,
+            image_path,
+            x,
+            y + self.card_height - img_height,
+            self.card_width,
+            img_height
+        )
+        c.restoreState()  # 🔑 clipping ends here
+
+        # ---------- Text ----------
+        text_x = x + 14
+        cursor_y = y + self.card_height - img_height - 26
+
+        c.setFillColor(PRIMARY)
+        c.setFont("Jost-Bold", 12)
+        c.drawCentredString(
+            x + self.card_width / 2,
+            cursor_y,
+            title
+        )
+
+        cursor_y -= 18
+        c.setFont("Jost", 9.8)
+
+        text_obj = c.beginText(text_x, cursor_y)
+        text_obj.setLeading(14)
+
+        max_width = self.card_width - 28
+        words, line = text.split(), ""
+
+        for word in words:
+            test = line + word + " "
+            if c.stringWidth(test, "Jost", 9.8) <= max_width:
+                line = test
+            else:
+                text_obj.textLine(line)
+                line = word + " "
+        if line:
+            text_obj.textLine(line)
+
+        c.drawText(text_obj)
+        c.restoreState()
+
+
 # ---------- OVERVIEW ----------
 story.append(Spacer(1, 185))
 story.append(Paragraph("Professional Overview", section))
@@ -744,6 +950,7 @@ story.append(Paragraph(
         spaceBefore=20, spaceAfter=12, alignment=1
     )
 ))
+story.append(Spacer(0, 10))
 
 story.append(CertificateCards(
     certificates, width=200, box_height=80, spacing=15))
@@ -751,11 +958,12 @@ story.append(Spacer(0, 10))
 story.append(CertificateCards(
     certificates1, width=200, box_height=80, spacing=15))
 story.append(Spacer(0, 10))
+story.append(PersonalPassion())
 
 # ---------- PROJECTS ----------
 story.append(Spacer(1, 10))
-story.append(Paragraph("Fun Projects & Learning", section))
-story.append(Spacer(1, 10))
+# story.append(Paragraph("Fun Projects & Learning", section))
+story.append(Spacer(1, 30))
 
 project_cards = [
     ProjectCard(
@@ -793,9 +1001,12 @@ image_cards = [
 ]
 
 story.append(TwoColumnGrid(image_cards))
-story.append(Spacer(1, 20))
+# story.append(Spacer(1, 20))
+# story.append(PersonalPassion())
+story.append(Spacer(1, 60))
 story.append(PageBreak())
 story.append(LetsConnectCard())
+
 
 # ---------- BUILD ----------
 doc.build(
