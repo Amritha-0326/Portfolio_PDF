@@ -68,8 +68,8 @@ def draw_header(canvas, doc):
     canvas.drawString(50, height - 36, "Amritha P Anil")
 
     # Right button: Contact Me
-    btn_width = 200
-    btn_height = 20
+    btn_width = 100
+    btn_height = 30
     btn_x = width - 50 - btn_width
     btn_y = height - 40  # small padding from top
 
@@ -81,7 +81,7 @@ def draw_header(canvas, doc):
 
     # Button text
     canvas.setFont("Jost-Bold", 16)
-    canvas.setFillColor(CTA)
+    canvas.setFillColor(WHITE)
     text_width = canvas.stringWidth(
         "“Design. Iterate. Repeat.”", "Jost-Bold", 12)
     text_x = btn_x + (btn_width - text_width) / 2
@@ -442,6 +442,46 @@ class ProjectCard(Flowable):
         if line:
             lines.append(line)
         return lines
+
+
+class CopyrightCard(Flowable):
+    def __init__(
+        self,
+        text="© 2025 Amritha Preetha Anil. All rights reserved.",
+        height=15,
+    ):
+        super().__init__()
+        self.text = text
+        self.height = height
+
+    def wrap(self, availWidth, availHeight):
+        # Take full available width, fixed height
+        self.width = availWidth + 80
+        return self.width, self.height
+
+    def draw(self):
+        c = self.canv
+
+        # Background bar
+        c.setFillColor(SOFT_GREEN)
+        c.rect(
+            -80,
+            -60,
+            (self.width) + 150,
+            self.height,
+            fill=1,
+            stroke=0
+        )
+
+        # Text (centered)
+        c.setFont("Jost", 9)
+        c.setFillColor(WHITE)
+
+        text_width = c.stringWidth(self.text, "Jost", 9)
+        text_x = ((self.width - text_width) / 2) - 30
+        text_y = ((self.height - 9) / 2 + 1) - 60  # optical vertical centering
+
+        c.drawString(text_x, text_y, self.text)
 
 
 class ImageCard(Flowable):
@@ -962,7 +1002,7 @@ story.append(PersonalPassion())
 
 # ---------- PROJECTS ----------
 story.append(Spacer(1, 10))
-# story.append(Paragraph("Fun Projects & Learning", section))
+story.append(Paragraph("Fun Projects & Learning", section))
 story.append(Spacer(1, 30))
 
 project_cards = [
@@ -1006,6 +1046,8 @@ story.append(TwoColumnGrid(image_cards))
 story.append(Spacer(1, 60))
 story.append(PageBreak())
 story.append(LetsConnectCard())
+story.append(Spacer(-10, 300))  # optional breathing space
+story.append(CopyrightCard())
 
 
 # ---------- BUILD ----------
